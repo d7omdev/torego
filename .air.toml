@@ -1,0 +1,10 @@
+
+# .air.toml
+# Air configuration for live reloading
+
+root = "."
+tmp_dir = "tmp"
+build = "go build -o ./tmp/torego ./cmd/torego"
+cmd = "./tmp/torego"
+include_ext = ["go"]
+exclude_dir = ["tmp", "vendor"]
