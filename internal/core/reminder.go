@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/d7omdev/torego/internal/storage"
@@ -44,8 +43,8 @@ func UpdateReminder(id int, title string, scheduledAt time.Time, period string) 
 	return storage.CreateNewReminder(title, period)
 }
 
-func DeleteReminder(id int) error {
-	return storage.RemoveReminderByID(id)
+func DeleteReminder(number int) error {
+	return storage.RemoveReminderByNumber(number)
 }
 
 func ListReminders() ([]storage.Reminder, error) {
@@ -71,12 +70,9 @@ func ShowActiveNotifications() error {
 		return nil
 	}
 
-	// Sort reminders by ID
-	sort.Slice(reminders, func(i, j int) bool {
-		return reminders[i].ID < reminders[j].ID
-	})
-	for _, reminder := range reminders {
-		fmt.Printf("%d: %s\n", reminder.ID, reminder.Title)
+	for i, reminder := range reminders {
+		scheduledAt := reminder.ScheduledAt[:10]
+		fmt.Printf("%d: %s (%s, %s)\n", i+1, reminder.Title, scheduledAt, reminder.Period)
 	}
 
 	return nil

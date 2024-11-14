@@ -22,7 +22,7 @@ func main() {
 				fmt.Fprintln(os.Stderr, "\033[31m[FATAL] Database is not initialized. Please run 'torego init' to initialize the database.\033[0m")
 				return
 			}
-			db, err := storage.GetDB(HOME)
+			db, err := storage.GetDB()
 			if err != nil {
 				fmt.Println("Error getting database connection:", err)
 				return

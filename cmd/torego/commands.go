@@ -81,8 +81,7 @@ var listCmd = &cobra.Command{
 	Short:   "List all reminders with more bloat",
 	Aliases: []string{"l"},
 	Run: func(cmd *cobra.Command, args []string) {
-		HOME := getHomeDir()
-		_, err := storage.GetDB(HOME)
+		_, err := storage.GetDB()
 		if err != nil {
 			fmt.Println("Error getting database connection:", err)
 			return
@@ -111,16 +110,18 @@ var listCmd = &cobra.Command{
 		// Color variables
 		blue := "\033[1;34m"
 		green := "\033[1;32m"
+		red := "\033[1;31m"
 		reset := "\033[0m"
 
 		// Header
-		fmt.Printf("%s╭───────────────────────────────────────────────────────────────╮%s\n", blue, reset)
-		fmt.Printf("%s| %-4s | %-21s | %-18s | %-9s |\n", blue, "ID ", "Title", "ScheduledAt", "Period")
-		fmt.Printf("├──────┼───────────────────────┼────────────────────┼───────────┤\n")
+		fmt.Printf("%s╭─────────────────────────────────────────────────────────────────────╮%s\n", blue, reset)
+		fmt.Printf("%s| %-4s | %-4s | %-20s | %-18s | %-9s |\n", blue, "#", "ID ", "Title", "ScheduledAt", "Period")
+		fmt.Printf("├──────┼──────┼──────────────────────┼────────────────────┼───────────┤\n")
 
 		// Rows
-		for _, reminder := range reminders {
-			fmt.Printf("| %s%-4d%s | %s%-21s%s | %s%-18s%s | %s%-9s%s |\n",
+		for i, reminder := range reminders {
+			fmt.Printf("| %s%-4d%s | %s%-4d%s | %s%-20s%s | %s%-18s%s | %s%-9s%s |\n",
+				red, i+1, blue,
 				green, reminder.ID, blue,
 				green, reminder.Title, blue,
 				green, reminder.ScheduledAt, blue,
@@ -129,7 +130,7 @@ var listCmd = &cobra.Command{
 		}
 
 		// Footer
-		fmt.Printf("%s╰───────────────────────────────────────────────────────────────╯%s\n", blue, reset)
+		fmt.Printf("%s╰─────────────────────────────────────────────────────────────────────╯%s\n", blue, reset)
 	},
 }
 

@@ -14,8 +14,6 @@ import (
 
 const dbFileName = "torego.db"
 
-var db *sql.DB
-
 func InitDB(home string) {
 	storageDir := filepath.Join(home, ".config", "torego", "storage")
 	if err := os.MkdirAll(storageDir, os.ModePerm); err != nil {
@@ -48,9 +46,13 @@ func IsDBInitialized(home string) bool {
 	return !os.IsNotExist(err)
 }
 
-func GetDB(home string) (*sql.DB, error) {
-	if db != nil {
-		return db, nil
+func GetDB() (*sql.DB, error) {
+	var db *sql.DB
+
+	// Get the home directory from the environment variable
+	home := os.Getenv("HOME")
+	if home == "" {
+		return nil, fmt.Errorf("HOME environment variable is not set")
 	}
 
 	configDir := filepath.Join(home, ".config", "torego", "storage")
@@ -65,6 +67,11 @@ func GetDB(home string) (*sql.DB, error) {
 }
 
 func createSchema() bool {
+	db, err := GetDB()
+	if err != nil {
+		fmt.Printf("failed to open database: %v", err)
+		os.Exit(1)
+	}
 	query := `
 	CREATE TABLE IF NOT EXISTS Migrations (
 		applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -115,6 +122,11 @@ func createSchema() bool {
 }
 
 func applyMigration(query string) bool {
+	db, err := GetDB()
+	if err != nil {
+		fmt.Printf("failed to open database: %v", err)
+		os.Exit(1)
+	}
 	stmt, err := db.Prepare("SELECT query FROM Migrations WHERE query = ?")
 	if err != nil {
 		log.Println("Failed to prepare migration check statement:", err)
@@ -163,6 +175,10 @@ type GroupedNotifications struct {
 }
 
 func LoadActiveGroupedNotifications() (*GroupedNotifications, error) {
+	db, err := GetDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %v", err)
+	}
 	query := `
 	SELECT id, title, datetime(created_at, 'localtime') as ts, reminder_id, ifnull(reminder_id, -id) as group_id, count(*) as group_count
 	FROM Notifications WHERE dismissed_at IS NULL GROUP BY group_id ORDER BY ts;
@@ -204,11 +220,15 @@ func ShowActiveNotifications() error {
 }
 
 func DismissGroupedNotificationByGroupID(groupID int) error {
+	db, err := GetDB()
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
 	query := `
 	UPDATE Notifications SET dismissed_at = CURRENT_TIMESTAMP
 	WHERE dismissed_at IS NULL AND ifnull(reminder_id, -id) = ?
 	`
-	_, err := db.Exec(query, groupID)
+	_, err = db.Exec(query, groupID)
 	return err
 }
 
@@ -228,9 +248,16 @@ func DismissGroupedNotificationByIndex(index int) (int, error) {
 }
 
 func CreateNotificationWithTitle(title string) error {
+	db, err := GetDB()
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
 	query := "INSERT INTO Notifications (title) VALUES (?)"
-	_, err := db.Exec(query, title)
-	return err
+	_, err = db.Exec(query, title)
+	if err != nil {
+		return fmt.Errorf("failed to insert notification: %v", err)
+	}
+	return nil
 }
 
 type Reminder struct {
@@ -247,6 +274,10 @@ type Reminders struct {
 }
 
 func LoadActiveReminders() (*Reminders, error) {
+	db, err := GetDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %v", err)
+	}
 	query := "SELECT id, title, strftime('%Y-%m-%d %H:%M', scheduled_at, 'localtime') as scheduled_at, period FROM Reminders WHERE finished_at IS NULL ORDER BY scheduled_at DESC"
 	rows, err := db.Query(query)
 	if err != nil {
@@ -268,14 +299,7 @@ func LoadActiveReminders() (*Reminders, error) {
 }
 
 func CreateNewReminder(title, period string) error {
-	// Get the home directory from the environment variable
-	homeDir := os.Getenv("HOME")
-	if homeDir == "" {
-		return fmt.Errorf("HOME environment variable is not set")
-	}
-
-	// Open the database connection
-	db, err := GetDB(homeDir)
+	db, err := GetDB()
 	if err != nil {
 		return fmt.Errorf("failed to open database: %v", err)
 	}
@@ -327,6 +351,10 @@ func isNumeric(s string) bool {
 }
 
 func FireOffReminders() error {
+	db, err := GetDB()
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
 	// Creating new notifications from fired off reminders
 	query := "INSERT INTO Notifications (title, reminder_id) SELECT title, id FROM Reminders WHERE scheduled_at <= date('now', 'localtime') AND finished_at IS NULL"
 	if _, err := db.Exec(query); err != nil {
@@ -366,8 +394,12 @@ func ShowActiveReminders() error {
 }
 
 func RemoveReminderByID(id int) error {
+	db, err := GetDB()
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
 	query := "UPDATE Reminders SET finished_at = CURRENT_TIMESTAMP WHERE id = ?"
-	_, err := db.Exec(query, id)
+	_, err = db.Exec(query, id)
 	return err
 }
 
@@ -376,8 +408,8 @@ func RemoveReminderByNumber(number int) error {
 	if err != nil {
 		return err
 	}
-	if number < 0 || number >= reminders.Count {
+	if number < 1 || number > reminders.Count {
 		return fmt.Errorf("%d is not a valid index of a reminder", number)
 	}
-	return RemoveReminderByID(reminders.Items[number].ID)
+	return RemoveReminderByID(reminders.Items[number-1].ID)
 }
