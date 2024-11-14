@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/d7omdev/torego/internal/core"
 	"github.com/d7omdev/torego/internal/storage"
@@ -54,7 +54,7 @@ If not provided, the period defaults to "daily".`,
 }
 
 var forgetCmd = &cobra.Command{
-	Use:     "forget",
+	Use:     "forget <index>",
 	Short:   "Forget a reminder",
 	Aliases: []string{"f"},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -92,10 +92,6 @@ var listCmd = &cobra.Command{
 			fmt.Println("Error listing reminders:", err)
 			return
 		}
-		// Sort reminders by ID
-		sort.Slice(reminders, func(i, j int) bool {
-			return reminders[i].ID < reminders[j].ID
-		})
 
 		if len(reminders) == 0 {
 			fmt.Println("No reminders found.")
@@ -120,18 +116,65 @@ var listCmd = &cobra.Command{
 
 		// Rows
 		for i, reminder := range reminders {
-			fmt.Printf("| %s%-4d%s | %s%-4d%s | %s%-20s%s | %s%-18s%s | %s%-9s%s |\n",
-				red, i+1, blue,
-				green, reminder.ID, blue,
-				green, reminder.Title, blue,
-				green, reminder.ScheduledAt, blue,
-				green, reminder.Period, blue,
-			)
+			titleLines := wrapText(reminder.Title, 20)
+			for j, line := range titleLines {
+				if j == 0 {
+					fmt.Printf("| %s%-4d%s | %s%-4d%s | %s%-20s%s | %s%-18s%s | %s%-9s%s |\n",
+						red, i+1, blue,
+						green, reminder.ID, blue,
+						green, line, blue,
+						green, reminder.ScheduledAt, blue,
+						green, reminder.Period, blue,
+					)
+				} else {
+					fmt.Printf("| %s%-4s%s | %s%-4s%s | %s%-20s%s | %s%-18s%s | %s%-9s%s |\n",
+						red, "", blue,
+						green, "", blue,
+						green, line, blue,
+						green, "", blue,
+						green, "", blue,
+					)
+				}
+			}
 		}
 
 		// Footer
 		fmt.Printf("%s╰─────────────────────────────────────────────────────────────────────╯%s\n", blue, reset)
 	},
+}
+
+func wrapText(text string, width int) []string {
+	words := strings.Fields(text)
+	var lines []string
+	var currentLine string
+
+	for _, word := range words {
+		for len(word) > width {
+			if currentLine != "" {
+				lines = append(lines, currentLine)
+				currentLine = ""
+			}
+			lines = append(lines, word[:width])
+			word = word[width:]
+		}
+
+		if len(currentLine)+len(word)+1 > width {
+			if currentLine != "" {
+				lines = append(lines, currentLine)
+			}
+			currentLine = word
+		} else {
+			if currentLine != "" {
+				currentLine += " "
+			}
+			currentLine += word
+		}
+	}
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+
+	return lines
 }
 
 var notifyCmd = &cobra.Command{
