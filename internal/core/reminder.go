@@ -66,12 +66,12 @@ func ShowActiveNotifications() error {
 	}
 	if len(reminders) == 0 {
 		fmt.Println("No reminders found.")
-		fmt.Println("Use 'torego remind <title> <period (optional)>' to set a reminder.")
+		fmt.Println("Use 'torego remind <title> [period]' to set a reminder.")
 		return nil
 	}
 
 	for _, reminder := range reminders {
-		fmt.Printf("ID: %d, Title: %s, ScheduledAt: %s, Period: %s\n", reminder.ID, reminder.Title, reminder.ScheduledAt, reminder.Period)
+		fmt.Printf("%d: %s\n", reminder.ID, reminder.Title)
 	}
 
 	return nil
