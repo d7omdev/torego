@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/d7omdev/torego/internal/storage"
@@ -70,6 +71,10 @@ func ShowActiveNotifications() error {
 		return nil
 	}
 
+	// Sort reminders by ID
+	sort.Slice(reminders, func(i, j int) bool {
+		return reminders[i].ID < reminders[j].ID
+	})
 	for _, reminder := range reminders {
 		fmt.Printf("%d: %s\n", reminder.ID, reminder.Title)
 	}

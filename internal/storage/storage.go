@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -267,24 +268,62 @@ func LoadActiveReminders() (*Reminders, error) {
 }
 
 func CreateNewReminder(title, period string) error {
-	home := os.Getenv("HOME")
-	if home == "" {
+	// Get the home directory from the environment variable
+	homeDir := os.Getenv("HOME")
+	if homeDir == "" {
 		return fmt.Errorf("HOME environment variable is not set")
 	}
 
-	db, err := GetDB(home)
+	// Open the database connection
+	db, err := GetDB(homeDir)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %v", err)
 	}
 
+	// Set the current time as the scheduled time
 	scheduledAt := time.Now().Format(time.RFC3339)
+
+	// Default period to "daily" if not provided
 	if period == "" {
 		period = "daily"
 	}
 
+	// Validate the period
+	validPeriods := map[string]bool{
+		"daily":    true,
+		"weekly":   true,
+		"monthly":  true,
+		"annually": true,
+	}
+
+	if !validPeriods[period] {
+		// Check for custom interval format (e.g., "2d", "3w")
+		if len(period) > 1 {
+			unit := period[len(period)-1]
+			value := period[:len(period)-1]
+			if (unit == 'd' || unit == 'w' || unit == 'm' || unit == 'y') && isNumeric(value) {
+				// Valid custom interval
+			} else {
+				return fmt.Errorf("Invalid period format, Run 'torego remind --help' for more information")
+			}
+		} else {
+			return fmt.Errorf("Invalid period format, Run 'torego remind --help' for more information")
+		}
+	}
+
+	// Insert the new reminder into the database
 	query := "INSERT INTO Reminders (title, scheduled_at, period) VALUES (?, ?, ?)"
 	_, err = db.Exec(query, title, scheduledAt, period)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to insert reminder: %v", err)
+	}
+
+	return nil
+}
+
+func isNumeric(s string) bool {
+	_, err := strconv.Atoi(s)
+	return err == nil
 }
 
 func FireOffReminders() error {

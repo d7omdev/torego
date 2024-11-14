@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 
 	"github.com/d7omdev/torego/internal/core"
@@ -24,7 +25,15 @@ var remindCmd = &cobra.Command{
 	Short:   "Set a reminder",
 	Aliases: []string{"r"},
 	Long: `Set a reminder with a title and an optional period.
-The period can be "daily", "weekly", "monthly", or a custom interval like "2 days", "3 weeks". If not provided, the period defaults to "daily".`,
+
+The period can be one of the following:
+- "daily"
+- "weekly"
+- "monthly"
+- "annually"
+- A custom interval like "2d", "3w", "4m", "5y"
+
+If not provided, the period defaults to "daily".`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			fmt.Println("Usage: torego remind <title> [period]")
@@ -84,6 +93,10 @@ var listCmd = &cobra.Command{
 			fmt.Println("Error listing reminders:", err)
 			return
 		}
+		// Sort reminders by ID
+		sort.Slice(reminders, func(i, j int) bool {
+			return reminders[i].ID < reminders[j].ID
+		})
 
 		if len(reminders) == 0 {
 			fmt.Println("No reminders found.")
@@ -108,10 +121,10 @@ var listCmd = &cobra.Command{
 		// Rows
 		for _, reminder := range reminders {
 			fmt.Printf("| %s%-4d%s | %s%-21s%s | %s%-18s%s | %s%-9s%s |\n",
-				green, reminder.ID, reset,
-				green, reminder.Title, reset,
-				green, reminder.ScheduledAt, reset,
-				green, reminder.Period, reset,
+				green, reminder.ID, blue,
+				green, reminder.Title, blue,
+				green, reminder.ScheduledAt, blue,
+				green, reminder.Period, blue,
 			)
 		}
 
