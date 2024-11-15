@@ -8,7 +8,7 @@ import (
 
 	"github.com/d7omdev/torego/internal/core"
 	"github.com/d7omdev/torego/internal/storage"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 )
 
 func getHomeDir() string {
@@ -20,13 +20,18 @@ func getHomeDir() string {
 	return HOME
 }
 
-var remindCmd = &cobra.Command{
-	Use:     "remind <title> [period]",
-	Short:   "Set a reminder",
-	Aliases: []string{"r"},
-	Long: `Set a reminder with a title and an optional period.
+var remindCmd = &cli.Command{
+	Name:      "remind",
+	Aliases:   []string{"r"},
+	Usage:     "Set a reminder",
+	UsageText: "torego remind <title> [period]",
 
-The period can be one of the following:
+	Description: `Set a reminder with an optional period.
+
+The title is the text description of the reminder.
+
+The period specifies how often the reminder should trigger.
+It can be one of the following:
 - "daily"
 - "weekly"
 - "monthly"
@@ -34,15 +39,16 @@ The period can be one of the following:
 - A custom interval like "2d", "3w", "4m", "5y"
 
 If not provided, the period defaults to "daily".`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
+
+	Action: func(c *cli.Context) error {
+		if c.NArg() < 1 {
 			fmt.Println("Usage: torego remind <title> [period]")
-			return
+			return nil
 		}
-		title := args[0]
+		title := c.Args().Get(0)
 		period := ""
-		if len(args) > 1 {
-			period = args[1]
+		if c.NArg() > 1 {
+			period = c.Args().Get(1)
 		}
 		err := storage.CreateNewReminder(title, period)
 		if err != nil {
@@ -50,22 +56,24 @@ If not provided, the period defaults to "daily".`,
 		} else {
 			fmt.Println("Reminder set!")
 		}
+		return nil
 	},
 }
 
-var forgetCmd = &cobra.Command{
-	Use:     "forget <index>",
-	Short:   "Forget a reminder",
-	Aliases: []string{"f"},
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			fmt.Println("Usage: torego forget <id>")
-			return
+var forgetCmd = &cli.Command{
+	Name:      "forget",
+	Aliases:   []string{"f"},
+	Usage:     "Forget a reminder",
+	UsageText: "torego forget <index>",
+	Action: func(c *cli.Context) error {
+		if c.NArg() < 1 {
+			fmt.Println("Usage: torego forget <index>")
+			return nil
 		}
-		id, err := strconv.Atoi(args[0])
+		id, err := strconv.Atoi(c.Args().Get(0))
 		if err != nil {
-			fmt.Println("Invalid ID format.")
-			return
+			fmt.Println("Invalid index format.")
+			return nil
 		}
 		err = core.DeleteReminder(id)
 		if err != nil {
@@ -73,35 +81,32 @@ var forgetCmd = &cobra.Command{
 		} else {
 			fmt.Println("Reminder forgotten!")
 		}
+		return nil
 	},
 }
 
-var listCmd = &cobra.Command{
-	Use:     "list",
-	Short:   "List all reminders with more bloat",
+var listCmd = &cli.Command{
+	Name:    "list",
 	Aliases: []string{"l"},
-	Run: func(cmd *cobra.Command, args []string) {
+	Usage:   "List all reminders with more bloat",
+	Action: func(c *cli.Context) error {
 		_, err := storage.GetDB()
 		if err != nil {
 			fmt.Println("Error getting database connection:", err)
-			return
+			return nil
 		}
 
 		reminders, err := core.ListReminders()
 		if err != nil {
 			fmt.Println("Error listing reminders:", err)
-			return
+			return nil
 		}
 
 		if len(reminders) == 0 {
 			fmt.Println("No reminders found.")
 			fmt.Println("Use 'torego remind <title> [period] to set a reminder.")
-			return
+			return nil
 		}
-
-		// Is this less bloat or more bloat?
-		// at least im not using extra packages
-		// right?
 
 		// Color variables
 		blue := "\033[1;34m"
@@ -140,6 +145,7 @@ var listCmd = &cobra.Command{
 
 		// Footer
 		fmt.Printf("%s╰─────────────────────────────────────────────────────────────────────╯%s\n", blue, reset)
+		return nil
 	},
 }
 
@@ -177,11 +183,11 @@ func wrapText(text string, width int) []string {
 	return lines
 }
 
-var notifyCmd = &cobra.Command{
-	Use:     "notify",
-	Short:   "Notify all reminders",
+var notifyCmd = &cli.Command{
+	Name:    "notify",
 	Aliases: []string{"n"},
-	Run: func(cmd *cobra.Command, args []string) {
+	Usage:   "Notify all reminders",
+	Action: func(c *cli.Context) error {
 		reminders, err := core.GetAllReminders()
 		if err != nil {
 			fmt.Println("Error notifying reminders:", err)
@@ -190,22 +196,24 @@ var notifyCmd = &cobra.Command{
 				fmt.Println(reminder.Title)
 			}
 		}
+		return nil
 	},
 }
 
-var dismissCmd = &cobra.Command{
-	Use:     "dismiss",
-	Short:   "Dismiss a reminder",
-	Aliases: []string{"d"},
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			fmt.Println("Usage: torego dismiss <id>")
-			return
+var dismissCmd = &cli.Command{
+	Name:      "dismiss",
+	Aliases:   []string{"d"},
+	Usage:     "Dismiss a reminder",
+	UsageText: "torego dismiss <index>",
+	Action: func(c *cli.Context) error {
+		if c.NArg() < 1 {
+			fmt.Println("Usage: torego dismiss <index>")
+			return nil
 		}
-		id, err := strconv.Atoi(args[0])
+		id, err := strconv.Atoi(c.Args().Get(0))
 		if err != nil {
-			fmt.Println("Invalid ID format.")
-			return
+			fmt.Println("Invalid index format.")
+			return nil
 		}
 		err = core.DeleteReminder(id)
 		if err != nil {
@@ -213,36 +221,51 @@ var dismissCmd = &cobra.Command{
 		} else {
 			fmt.Println("Reminder dismissed!")
 		}
+		return nil
 	},
 }
 
-var checkoutCmd = &cobra.Command{
-	Use:     "checkout",
-	Short:   "Checkout a reminder",
+var checkoutCmd = &cli.Command{
+	Name:    "checkout",
 	Aliases: []string{"c"},
-	Run: func(cmd *cobra.Command, args []string) {
+	Usage:   "Checkout a reminder",
+	Action: func(c *cli.Context) error {
 		err := core.CheckoutReminder()
 		if err != nil {
 			fmt.Println("Error checking out reminders:", err)
 		} else {
 			fmt.Println("Reminders checked out!")
 		}
+		return nil
 	},
 }
 
-var serveCmd = &cobra.Command{
-	Use:     "serve",
-	Short:   "Start the Torego server",
+var serveCmd = &cli.Command{
+	Name:    "serve",
 	Aliases: []string{"s"},
-	Run:     func(cmd *cobra.Command, args []string) {},
+	Usage:   "Start the Torego server",
+	Action: func(c *cli.Context) error {
+		// Placeholder for actual server logic
+		return nil
+	},
 }
 
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize the Torego database",
-	Run: func(cmd *cobra.Command, args []string) {
+var initCmd = &cli.Command{
+	Name:  "init",
+	Usage: "Initialize the Torego database",
+	Action: func(c *cli.Context) error {
 		HOME := getHomeDir()
-
 		storage.InitDB(HOME)
+		return nil
+	},
+}
+
+var versionCmd = &cli.Command{
+	Name:    "version",
+	Aliases: []string{"v"},
+	Usage:   "Print the version of Torego",
+	Action: func(c *cli.Context) error {
+		fmt.Println("Torego v0.1.0")
+		return nil
 	},
 }

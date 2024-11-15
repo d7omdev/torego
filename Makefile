@@ -24,8 +24,15 @@ deps:
 # Build the torego binary
 build:
 	@echo "Building $(BINARY_NAME)..."
-	@go build -o build/$(BINARY_NAME) $(CMD_PATH)
-	@echo "$(BINARY_NAME) built successfully!"
+	go build -ldflags="-s -w" -o build/$(BINARY_NAME) $(CMD_PATH)
+	@echo "$(BINARY_NAME) built successfully! (Optimized for size)"
+
+# Compress the torego binary using UPX
+compress:
+	@echo "Compressing $(BINARY_NAME) with UPX..."
+	@upx --best --lzma build/$(BINARY_NAME)
+	@echo "$(BINARY_NAME) compressed successfully!"
+
 
 # Run the torego binary
 run: clean build
