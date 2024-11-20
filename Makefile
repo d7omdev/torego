@@ -1,6 +1,7 @@
 # Variables
 BINARY_NAME = torego
 CMD_PATH = ./cmd/torego
+VERSION = $(shell git describe --tags --always --dirty)
 
 # Default target
 .DEFAULT_GOAL := help
@@ -24,8 +25,8 @@ deps:
 # Build the torego binary
 build:
 	@echo "Building $(BINARY_NAME)..."
-	go build -ldflags="-s -w" -o build/$(BINARY_NAME) $(CMD_PATH)
-	@echo "$(BINARY_NAME) built successfully! (Optimized for size)"
+	go build -ldflags="-s -w -X 'main.Version=$(VERSION)'" -o build/$(BINARY_NAME) $(CMD_PATH)
+	@echo "$(BINARY_NAME) built successfully with version $(VERSION)!"
 
 # Compress the torego binary using UPX
 compress:

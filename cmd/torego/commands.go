@@ -260,12 +260,15 @@ var initCmd = &cli.Command{
 	},
 }
 
-var versionCmd = &cli.Command{
-	Name:    "version",
-	Aliases: []string{"v"},
-	Usage:   "Print the version of Torego",
-	Action: func(c *cli.Context) error {
-		fmt.Println("Torego v0.1.0")
-		return nil
-	},
-}
+var (
+	Version    = "dev"
+	versionCmd = &cli.Command{
+		Name:    "version",
+		Aliases: []string{"v"},
+		Usage:   "Print the version of Torego",
+		Action: func(c *cli.Context) error {
+			fmt.Printf("Torego %s\n", Version)
+			return nil
+		},
+	}
+)
